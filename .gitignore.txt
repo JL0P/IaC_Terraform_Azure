@@ -1,0 +1,17 @@
+# Terraform 
+.terraform/ 
+terraform.tfstate 
+terraform.tfstate.* 
+crash.log override.tf 
+override.tf.json 
+*.tfvars 
+*.tfvars.json 
+# (il lock file di Terraform di solito si COMMITTA) 
+# .terraform.lock.hcl 
+# Python 
+__pycache__/ 
+*.pyc 
+.venv/ 
+venv/ 
+# VS Code 
+.vscode/
