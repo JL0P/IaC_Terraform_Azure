@@ -40,7 +40,7 @@ jobs:
 
       - name: Terraform Init (remote state in Azure Storage)
         run: |
-          terraform init -lockfile=readonly\
+          terraform init \
             -backend-config="resource_group_name=${{ secrets.TFSTATE_RG }}" \
             -backend-config="storage_account_name=${{ secrets.TFSTATE_SA }}" \
             -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}" \
