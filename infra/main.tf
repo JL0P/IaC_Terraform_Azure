@@ -78,12 +78,14 @@ resource "azurerm_machine_learning_workspace" "aml" {
 # Compute cluster (CPU)
 resource "azurerm_machine_learning_compute_cluster" "cpu" {
   name                          = var.compute_name
+  location                      = azurerm_resource_group.rg.location
+  vm_priority                   = var.cl_priority
   machine_learning_workspace_id = azurerm_machine_learning_workspace.aml.id
   vm_size                       = var.vm_size
 
   scale_settings {
     min_node_count                       = var.min_nodes
     max_node_count                       = var.max_nodes
-    scale_down_nodes_after_idle_duration = "PT2M"
+    scale_down_nodes_after_idle_duration = "PT30S"
   }
 }

@@ -5,6 +5,10 @@ variable "storage_account" { type = string }
 variable "key_vault_name" { type = string }
 variable "acr_name" { type = string }
 variable "appinsights_name" { type = string }
+variable "cl_priority" {
+  type    = string
+  default = "LowPriority"
+}
 variable "compute_name" {
   type    = string
   default = "cpu-cluster_j1"
