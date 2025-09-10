@@ -7,7 +7,7 @@ variable "acr_name" { type = string }
 variable "appinsights_name" { type = string }
 variable "cl_priority" {
   type    = string
-  default = "LowPriority"
+  default = "Dedicated"
 }
 variable "compute_name" {
   type    = string
