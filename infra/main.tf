@@ -14,16 +14,16 @@ resource "azurerm_storage_account" "sa" {
 
 
   blob_properties {
-    versioning_enabled = true
+    versioning_enabled  = true
     change_feed_enabled = true
 
     delete_retention_policy {
-        days= 20
-        }
+      days = 20
+    }
     container_delete_retention_policy {
-        days= 20
-        }
-   }  
+      days = 20
+    }
+  }
 
 }
 
@@ -59,9 +59,9 @@ resource "azurerm_container_registry" "acr" {
 
 # Azure ML Workspace
 resource "azurerm_machine_learning_workspace" "aml" {
-  name                    = var.workspace_name
-  location                = azurerm_resource_group.rg.location
-  resource_group_name     = azurerm_resource_group.rg.name
+  name                = var.workspace_name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 
   application_insights_id = azurerm_application_insights.appi.id
   key_vault_id            = azurerm_key_vault.kv.id
@@ -77,9 +77,9 @@ resource "azurerm_machine_learning_workspace" "aml" {
 
 # Compute cluster (CPU)
 resource "azurerm_machine_learning_compute_cluster" "cpu" {
-  name                            = var.compute_name
-  machine_learning_workspace_id   = azurerm_machine_learning_workspace.aml.id
-  vm_size                         = var.vm_size
+  name                          = var.compute_name
+  machine_learning_workspace_id = azurerm_machine_learning_workspace.aml.id
+  vm_size                       = var.vm_size
 
   scale_settings {
     min_node_count                       = var.min_nodes
