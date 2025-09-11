@@ -1,5 +1,5 @@
 variable "location" { type = string }
-variable "LAW_workspace_name"  {type = string}
+variable "LAW_workspace_name" { type = string }
 variable "LAW_id" { type = string }
 variable "resource_group" { type = string }
 variable "workspace_name" { type = string }
