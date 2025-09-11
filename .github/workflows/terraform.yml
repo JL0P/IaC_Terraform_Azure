@@ -65,8 +65,18 @@ jobs:
           CPU_CLUSTER="${{ vars.compute_name }}"
           
 
-          tf_import_if_exists () { addr="$1"; id="$2"; if [ -z "$id" ]; then echo "no id for $addr"; else terraform state show "$addr" >/dev/null 2>&1 || terraform import "$addr" "$id" || true; fi; }
+          tf_import_if_exists() {
+              local addr="${1-}"
+              local id="${2-}"
 
+              if [[ -z "$addr" || -z "$id" ]]; then
+                echo "tf_import_if_exists: serve addr e id (ricevuto: addr='$addr' id='$id')" >&2
+                return 0  # non fallire la pipeline, semplicemente non importare
+              fi
+
+              terraform state show "$addr" >/dev/null 2>&1 || terraform import "$addr" "$id" || true
+            }
+            
           APPINSIGHTS_ID="$(az monitor app-insights component show -g "$RG" -a "$APPINSIGHTS_NAME" --query id -o tsv 2>/dev/null || true)"
           WS_ID="$(az ml workspace show -g "$RG" -n "$WS_NAME" --query id -o tsv 2>/dev/null || true)"
           ACR_ID="$(az acr show -g "$RG" -n "$ACR_NAME" --query id -o tsv 2>/dev/null || true)"
