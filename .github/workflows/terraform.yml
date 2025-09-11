@@ -46,6 +46,34 @@ jobs:
             -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}" \
             -backend-config="key=infra.tfstate"
 
+      - name: Import-or-create
+        shell: bash
+        run: |
+          set -euo pipefail
+          RG="${{ vars.resource_group }}"
+          WS_NAME="${{ vars.workspace_name }}"
+          APPINSIGHTS_NAME="${{ vars.appinsights_name }}"
+          ACR_NAME="${{ vars.acr_name }}"
+          KV_NAME="${{ vars.key_vault_name }}"
+          SA_NAME="${{ vars.storage_account }}"
+          CPU_CLUSTER="${{ vars.compute_name }}"
+
+          tf_import_if_exists () { addr="$1"; id="$2"; if [ -z "$id" ]; then echo "no id for $addr"; else terraform state show "$addr" >/dev/null 2>&1 || terraform import "$addr" "$id" || true; fi; }
+
+          APPINSIGHTS_ID="$(az monitor app-insights component show -g "$RG" -a "$APPINSIGHTS_NAME" --query id -o tsv 2>/dev/null || true)"
+          WS_ID="$(az ml workspace show -g "$RG" -n "$WS_NAME" --query id -o tsv 2>/dev/null || true)"
+          ACR_ID="$(az acr show -g "$RG" -n "$ACR_NAME" --query id -o tsv 2>/dev/null || true)"
+          KV_ID="$(az keyvault show -g "$RG" -n "$KV_NAME" --query id -o tsv 2>/dev/null || true)"
+          SA_ID="$(az storage account show -g "$RG" -n "$SA_NAME" --query id -o tsv 2>/dev/null || true)"
+          CPUCLUSTER_ID="$(az ml compute show -g "$RG" -w "$WS_NAME" -n "$CPU_CLUSTER" --query id -o tsv 2>/dev/null || true)"
+
+          tf_import_if_exists azurerm_application_insights.appi     "$APPINSIGHTS_ID"
+          tf_import_if_exists azurerm_key_vault.kv                  "$KV_ID"
+          tf_import_if_exists azurerm_storage_account.sa            "$SA_ID"
+          tf_import_if_exists azurerm_container_registry.acr        "$ACR_ID"
+          tf_import_if_exists azurerm_machine_learning_workspace.ws "$WS_ID"
+          tf_import_if_exists azurerm_machine_learning_compute_cluster.cpu "$CPUCLUSTER_ID"      
+      
       - name: Terraform Fmt & Validate
         run: |
           terraform fmt -check
@@ -53,8 +81,8 @@ jobs:
 
       - name: Terraform Plan
         if: github.event_name == 'pull_request'
-        run: terraform plan -no-color
+        run: terraform -out tfplan -no-color
 
       - name: Terraform Apply
         if: github.event_name != 'pull_request'
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve tfplan
