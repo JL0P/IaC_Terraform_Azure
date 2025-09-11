@@ -63,6 +63,7 @@ jobs:
           KV_NAME="${{ vars.key_vault_name }}"
           SA_NAME="${{ vars.storage_account }}"
           CPU_CLUSTER="${{ vars.compute_name }}"
+          
 
           tf_import_if_exists () { addr="$1"; id="$2"; if [ -z "$id" ]; then echo "no id for $addr"; else terraform state show "$addr" >/dev/null 2>&1 || terraform import "$addr" "$id" || true; fi; }
 
@@ -72,7 +73,9 @@ jobs:
           KV_ID="$(az keyvault show -g "$RG" -n "$KV_NAME" --query id -o tsv 2>/dev/null || true)"
           SA_ID="$(az storage account show -g "$RG" -n "$SA_NAME" --query id -o tsv 2>/dev/null || true)"
           CPUCLUSTER_ID="$(az ml compute show -g "$RG" -w "$WS_NAME" -n "$CPU_CLUSTER" --query id -o tsv 2>/dev/null || true)"
-
+          LAW_ID="$(az monitor log-analytics workspace show -g "$RG" --query id -o tsv 2>/dev/null || true)"
+ 
+          tf_import_if_exists azurerm_log_analytics_workspace.law "$LAW_ID"
           tf_import_if_exists azurerm_application_insights.appi     "$APPINSIGHTS_ID"
           tf_import_if_exists azurerm_key_vault.kv                  "$KV_ID"
           tf_import_if_exists azurerm_storage_account.sa            "$SA_ID"
