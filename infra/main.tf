@@ -40,15 +40,25 @@ resource "azurerm_key_vault" "kv" {
 
 data "azurerm_client_config" "current" {}
 
+#LAW
+resource "azurerm_log_analytics_workspace" "law" {
+  id                  = var.LAW_id
+  name                = var.LAW_workspace_name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+
+
 # Application Insights
 resource "azurerm_application_insights" "appi" {
   name                = var.appinsights_name
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   application_type    = "web"
-  lifecycle {
-    ignore_changes = [workspace_id]
-  }
+  workspace_id        = azurerm_log_analytics_workspace.law.id
 }
 
 # ACR (utile per immagini custom)

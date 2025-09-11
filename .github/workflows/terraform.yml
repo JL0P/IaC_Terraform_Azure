@@ -48,7 +48,10 @@ jobs:
             -backend-config="storage_account_name=${{ secrets.TFSTATE_SA }}" \
             -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}" \
             -backend-config="key=infra.tfstate"
-
+      
+      - name: Install Azure ML CLI v2 extension
+        run: az extension add -n ml -y || az extension update -n ml
+      
       - name: Import-or-create
         shell: bash
         run: |
@@ -74,7 +77,7 @@ jobs:
           tf_import_if_exists azurerm_key_vault.kv                  "$KV_ID"
           tf_import_if_exists azurerm_storage_account.sa            "$SA_ID"
           tf_import_if_exists azurerm_container_registry.acr        "$ACR_ID"
-          tf_import_if_exists azurerm_machine_learning_workspace.ws "$WS_ID"
+          tf_import_if_exists azurerm_machine_learning_workspace.aml "$WS_ID"
           tf_import_if_exists azurerm_machine_learning_compute_cluster.cpu "$CPUCLUSTER_ID"      
       
       - name: Terraform Fmt & Validate
