@@ -81,8 +81,12 @@ jobs:
 
       - name: Terraform Plan
         if: github.event_name == 'pull_request'
-        run: terraform -out infra/tfplan -no-color
+        run: terraform plan -out tfplan -no-color -input=false
+
+      - name: Terraform Show 
+        if: github.event_name == 'pull_request'
+        run: terraform show -no-color tfplan > plan.txt  
 
       - name: Terraform Apply
         if: github.event_name != 'pull_request'
-        run: terraform apply -auto-approve infra/tfplan
+        run: terraform apply -auto-approve -input=false tfplan
