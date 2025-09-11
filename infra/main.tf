@@ -42,7 +42,7 @@ data "azurerm_client_config" "current" {}
 
 #LAW
 resource "azurerm_log_analytics_workspace" "law" {
-  id                  = var.LAW_id
+  workspace_id        = var.LAW_id
   name                = var.LAW_workspace_name
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
