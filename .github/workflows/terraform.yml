@@ -52,46 +52,79 @@ jobs:
       - name: Install Azure ML CLI v2 extension
         run: az extension add -n ml -y || az extension update -n ml
       
-      - name: Import-or-create
+      - name: Load vars from terraform.tfvars
+        working-directory: infra
         shell: bash
         run: |
           set -euo pipefail
-          RG="${{ vars.resource_group }}"
-          WS_NAME="${{ vars.workspace_name }}"
-          APPINSIGHTS_NAME="${{ vars.appinsights_name }}"
-          ACR_NAME="${{ vars.acr_name }}"
-          KV_NAME="${{ vars.key_vault_name }}"
-          SA_NAME="${{ vars.storage_account }}"
-          CPU_CLUSTER="${{ vars.compute_name }}"
-          
+          TVARS_FILE="terraform.tfvars"
+
+          # helper: extract "key = value" (con o senza virgolette, ignora spazi)
+          kv () {
+            local key="$1"
+            # get last definition in the file (for duplicates)
+            local line
+            line="$(grep -E "^[[:space:]]*${key}[[:space:]]*=" "$TVARS_FILE" | tail -n1 || true)"
+            # remove "key ="
+            line="${line#*=}"
+            # trim spaces
+            line="$(echo "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+            # rremove symbols
+            line="$(echo "$line" | sed -E 's/^"//; s/"$//; s/^'\''//; s/'\''$//')"
+            printf '%s' "$line"
+          }
+
+          RG="$(kv resource_group)"
+          WS_NAME="$(kv workspace_name)"
+          APPINSIGHTS_NAME="$(kv appinsights_name)"
+          ACR_NAME="$(kv acr_name)"
+          KV_NAME="$(kv key_vault_name)"
+          SA_NAME="$(kv storage_account)"
+          CPU_CLUSTER="$(kv compute_name)"
+
+          echo "RG=$RG" >> "$GITHUB_ENV"
+          echo "WS_NAME=$WS_NAME" >> "$GITHUB_ENV"
+          echo "APPINSIGHTS_NAME=$APPINSIGHTS_NAME" >> "$GITHUB_ENV"
+          echo "ACR_NAME=$ACR_NAME" >> "$GITHUB_ENV"
+          echo "KV_NAME=$KV_NAME" >> "$GITHUB_ENV"
+          echo "SA_NAME=$SA_NAME" >> "$GITHUB_ENV"
+          echo "CPU_CLUSTER=$CPU_CLUSTER" >> "$GITHUB_ENV"
+
+      # 2) Import-or-create using vars from tfvar
+      - name: Import-or-create
+        working-directory: infra
+        shell: bash
+        run: |
+          set -euo pipefail
 
           tf_import_if_exists() {
-              local addr="${1-}"
-              local id="${2-}"
+            local addr="${1-}"
+            local id="${2-}"
+            if [[ -z "$addr" || -z "$id" ]]; then
+              echo "tf_import_if_exists: needs addr e id (recived: addr='$addr' id='$id')" >&2
+              return 0
+            fi
+            terraform state show "$addr" >/dev/null 2>&1 || terraform import "$addr" "$id" || true
+          }
 
-              if [[ -z "$addr" || -z "$id" ]]; then
-                echo "tf_import_if_exists: serve addr e id (ricevuto: addr='$addr' id='$id')" >&2
-                return 0  # non fallire la pipeline, semplicemente non importare
-              fi
-
-              terraform state show "$addr" >/dev/null 2>&1 || terraform import "$addr" "$id" || true
-            }
-            
+          # resources already present? get ids
           APPINSIGHTS_ID="$(az monitor app-insights component show -g "$RG" -a "$APPINSIGHTS_NAME" --query id -o tsv 2>/dev/null || true)"
+          LAW_ID="$(az monitor app-insights component show -g "$RG" -a "$APPINSIGHTS_NAME" --query workspaceResourceId -o tsv 2>/dev/null || true)"
           WS_ID="$(az ml workspace show -g "$RG" -n "$WS_NAME" --query id -o tsv 2>/dev/null || true)"
           ACR_ID="$(az acr show -g "$RG" -n "$ACR_NAME" --query id -o tsv 2>/dev/null || true)"
           KV_ID="$(az keyvault show -g "$RG" -n "$KV_NAME" --query id -o tsv 2>/dev/null || true)"
           SA_ID="$(az storage account show -g "$RG" -n "$SA_NAME" --query id -o tsv 2>/dev/null || true)"
           CPUCLUSTER_ID="$(az ml compute show -g "$RG" -w "$WS_NAME" -n "$CPU_CLUSTER" --query id -o tsv 2>/dev/null || true)"
-          LAW_ID="$(az monitor log-analytics workspace show -g "$RG" --query id -o tsv 2>/dev/null || true)"
- 
-          tf_import_if_exists azurerm_log_analytics_workspace.law "$LAW_ID"
-          tf_import_if_exists azurerm_application_insights.appi     "$APPINSIGHTS_ID"
-          tf_import_if_exists azurerm_key_vault.kv                  "$KV_ID"
-          tf_import_if_exists azurerm_storage_account.sa            "$SA_ID"
-          tf_import_if_exists azurerm_container_registry.acr        "$ACR_ID"
-          tf_import_if_exists azurerm_machine_learning_workspace.aml "$WS_ID"
-          tf_import_if_exists azurerm_machine_learning_compute_cluster.cpu "$CPUCLUSTER_ID"      
+
+          # Import 
+          tf_import_if_exists azurerm_log_analytics_workspace.law             "$LAW_ID"
+          tf_import_if_exists azurerm_application_insights.appi               "$APPINSIGHTS_ID"
+          tf_import_if_exists azurerm_key_vault.kv                            "$KV_ID"
+          tf_import_if_exists azurerm_storage_account.sa                      "$SA_ID"
+          tf_import_if_exists azurerm_container_registry.acr                  "$ACR_ID"
+          tf_import_if_exists azurerm_machine_learning_workspace.aml          "$WS_ID"
+          tf_import_if_exists azurerm_machine_learning_compute_cluster.cpu    "$CPUCLUSTER_ID"
+          
       
       - name: Terraform Fmt & Validate
         run: |
